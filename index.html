@@ -249,7 +249,7 @@ let apiKey = '';
 function checkKey(v) {
   apiKey = v.trim();
   const st = document.getElementById('keyStatus');
-  if(apiKey.startsWith('sk-ant-') && apiKey.length > 20) {
+  if(apiKey.startsWith('sk-') && apiKey.length > 20) {
     st.textContent = '✓ Дайын'; st.style.color = '#4A9B7F';
   } else { st.textContent = 'Кілтті енгізіңіз'; st.style.color = '#555'; }
 }
@@ -339,21 +339,23 @@ async function generate(id) {
   const img=IMAGES[id];
   try {
   if(!apiKey) { area.innerHTML=`<div style="background:#FFF0EB;border:1px solid #F5C4B3;border-radius:8px;padding:1rem;font-size:13px;color:#993C1D;">⚠️ API кілтін жоғарғы жолаққа енгізіңіз</div>`; isLoading=false; const b=document.getElementById('genBtn'); if(b)b.disabled=false; return; }
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const resp=await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'gpt-4o',
         max_tokens:1500,
-        system:SYSTEM_PROMPT,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:img.src.split(',')[1]}},
-          {type:'text',text:'Осы карточканы талда және нұсқауларға сәйкес JSON қайтар.'}
-        ]}]
+        messages:[
+          {role:'system',content:SYSTEM_PROMPT},
+          {role:'user',content:[
+            {type:'image_url',image_url:{url:img.src}},
+            {type:'text',text:'Осы карточканы талда және нұсқауларға сәйкес JSON қайтар.'}
+          ]}
+        ]
       })
     });
     const data=await resp.json();
-    const txt=data.content[0].text.replace(/```json|```/g,'').trim();
+    const txt=data.choices[0].message.content.replace(/```json|```/g,'').trim();
     const result=JSON.parse(txt);
     renderResult(result);
   } catch(e) {
